@@ -7,6 +7,7 @@ async function fetch() {
   const chainBalances = {}
   
   balances.forEach(balance => {
+    if (balance.type !== 'token') return // Skip non-token assets
     const chain = balance.chain
     if (!chainBalances[chain]) chainBalances[chain] = 0
     chainBalances[chain] += Number(balance.balanceUsd)
