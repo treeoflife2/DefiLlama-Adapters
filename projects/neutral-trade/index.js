@@ -73,6 +73,46 @@ async function tvl(api) {
 }
 
 
+async function supplies(api) {
+  const sdk = require("@defillama/sdk");
+  const entries = [];
+
+  // Hyperliquid perp vaults
+  const hlApi = new sdk.ChainApi({ chain: "solana" });
+  for (const vault of HYPERLIQUID_VAULTS) {
+    try {
+      const vaultTvl = await getHyperliquidVaultTvl(vault.address);
+      hlApi.add(vault.token.mint, vaultTvl);
+    } catch (e) { /* vault may be empty */ }
+  }
+  entries.push({ protocol: "hyperliquid", balances: hlApi.getBalances() });
+
+  // NT bundle vaults (self-custody, not in another protocol)
+  const selfApi = new sdk.ChainApi({ chain: "solana" });
+  try {
+    const vaults = await getConfig("neutral-trade/vaults", VAULTS_REGISTRY_URL);
+    if (Array.isArray(vaults)) {
+      for (const vault of vaults.filter((v) => v.type === "Bundle")) {
+        const token = TOKENS[vault.depositToken];
+        if (!token) continue;
+        try {
+          const vaultTvl = await getNtVaultTvl(
+            vault.vaultAddress,
+            vault.bundleProgramId ?? NT_VAULT_PROGRAM_ID
+          );
+          selfApi.add(token.mint, vaultTvl);
+        } catch (e) { /* vault may be empty */ }
+      }
+    }
+  } catch (e) { /* registry fetch failed */ }
+  entries.push({ protocol: "@", balances: selfApi.getBalances() });
+
+  // Drift vaults — disabled post-hack
+  entries.push({ protocol: "drift", balances: {} });
+
+  return entries;
+}
+
 module.exports = {
   start: START_TIMESTAMP,
   timetravel: false,
@@ -81,5 +121,5 @@ module.exports = {
   ],
   doublecounted: false,
   methodology: "The combined TVL and PnL of all public and private vaults.",
-  solana: { tvl },
+  solana: { tvl, supplies },
 };

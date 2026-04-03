@@ -14,5 +14,7 @@
   "ownTokens",
   "meta",
   "moduleFilePath",
-  "vesting"
+  "vesting",
+  "supplies",
+  "owes"
 ]

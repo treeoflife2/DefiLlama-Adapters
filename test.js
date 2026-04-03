@@ -209,6 +209,10 @@ function validateHallmarks(hallmark) {
         if (typeof tvlFunction !== "function") {
           return;
         }
+        // Skip transparency keys — these return arrays, not token balances
+        if (tvlType === 'supplies' || tvlType === 'owes') {
+          return;
+        }
         let storedKey = `${chain}-${tvlType}`;
         if (tvlType === "tvl") {
           storedKey = chain;
